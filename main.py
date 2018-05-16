@@ -10,8 +10,6 @@ from helpers import *
 %matplotlib inline
 
 # TODO: Get number of times the user intiated the logging by themselves.
-
-
 #%%
 ###
 #   Reload Modules
