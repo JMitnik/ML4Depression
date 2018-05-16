@@ -10,14 +10,6 @@ from helpers import *
 %matplotlib inline
 
 # TODO: Get number of times the user intiated the logging by themselves.
-#%%
-###
-#   Reload Modules
-#   Reload modules! Execute this cell if you want to reload
-#   imported modules.
-##
-
-importlib.reload(helpers)
 
 #%%
 full_EMA = pd.read_csv('data/v2/ema_logs/ECD_X970_12345678.csv',
