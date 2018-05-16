@@ -60,8 +60,6 @@ ts_log_moving_avg_diff.dropna(inplace=True)
 #%%
 # Let's now assign an exponential moving weighted average to give more priority to recent values
 expweighted_avg = pd.ewma(ts_log, halflife=7)
-# plt.plot(ts_log)
-# plt.plot(expweighted_avg, color='orange')
 
 ts_log_ewma_diff_ts = ts_log - expweighted_avg
 test_stationarity(ts_log_ewma_diff_ts)
