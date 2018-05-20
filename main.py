@@ -85,9 +85,6 @@ for col in sample_patient_features.fillna(0):
 
 sample_patient_ml_features = sample_patient_ml_features.fillna(0)
 
-
-#%%
-pd_sample_patient['xEmaSchedule'].resample('1d').count()
 #%%
 q_asked = pd_sample_patient['xEmaSchedule'].resample('1d').count()
 
@@ -97,9 +94,7 @@ q_asked[len(q_asked) - 7:] = 10
 q_asked[7:len(q_asked) - 7][q_asked > 1] = 10
 q_asked[q_asked <= 1] = 1
 
-pd.DataFrame([q_asked, pd_sample_patient['xEmaSchedule'].resample('1d').count()]).transpose()
 #%%
-
 pd_engagement = pd_sample_patient['xEmaSchedule'].resample('1d') / q_asked
 
 # MVP-first:
@@ -113,6 +108,18 @@ from sklearn import linear_model
 reg = linear_model.Lasso(alpha=0.1)
 pd_engagement = pd_engagement.fillna(0)
 pd_engagement.fillna(0)
-#%%
 
-reg.fit(sample_patient_ml_features, pd_engagement)
+#%%
+# from sklearn.model_selection import TimeSeriesSplit
+# splitter = TimeSeriesSplit(2)
+# train_index, test_index = splitter.split(sample_patient_ml_features)
+
+#%%
+# train_x  = sample_patient_ml_features[train_index]
+
+split_index = int(len(sample_patient_ml_features) * 0.66)
+reg.fit(sample_patient_ml_features[:split_index], pd_engagement[:split_index])
+
+#%%
+reg.predict(sample_patient_ml_features[split_index:])
+pd_engagement[split_index:]
