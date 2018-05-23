@@ -53,7 +53,6 @@ pd_sample_patient = pd_sample_patient[pd_sample_patient['xEmaSchedule'] != 4]
 
 #%%
 sliding_window = 7
-# sample_patient_features = pd.Dataframe
 
 mood_question_columns = pd_sample_patient.filter(regex="mood_question_\d")
 mood_answer_columns = pd_sample_patient.filter(regex=".*answer")
