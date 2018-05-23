@@ -84,4 +84,11 @@ patient_x = patient_ml_features
 patient_y = pd_engagement
 
 #%%
-patient_ml_features
+# Reading Module data
+full_mod = pd.read_csv('data/v2/ema_logs/ECD_Y001.csv')
+full_mod['yDateTime'] = pd.to_datetime(full_mod['yDateTime'])
+patient_mod = full_mod[full_mod['ECD_ID'] == sample_patient]
+patient_mod =  patient_mod.set_index(['yDateTime'])
+
+#%%
+
