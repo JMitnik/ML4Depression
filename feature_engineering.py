@@ -49,29 +49,25 @@ for col in mood_question_columns:
     resampled_col = mood_question_columns[col].resample('1d').sum()
     patient_base_features[resampled_col.name] = resampled_col
 
-
-#%%
 # Getting a number of generic statistics for the different features
 patient_ml_features = pd.DataFrame(index=patient_base_features.index)
 
 for col in patient_base_features.fillna(0):
-    patient_ml_features['avg_'+col] = patient_base_features[col].rolling(
+    patient_ml_features['avg_'+col+'_'+sliding_window+'_days'] = patient_base_features[col].rolling(
         str(sliding_window)+'d').mean().shift(1)
-    patient_ml_features['min_'+col] = patient_base_features[col].rolling(
+    patient_ml_features['min_'+col+'_'+sliding_window+'_days'] = patient_base_features[col].rolling(
         str(sliding_window)+'d').min().shift(1)
-    patient_ml_features['max_'+col] = patient_base_features[col].rolling(
+    patient_ml_features['max_'+col+'_'+sliding_window+'_days'] = patient_base_features[col].rolling(
         str(sliding_window)+'d').max().shift(1)
-    patient_ml_features['std_'+col] = patient_base_features[col].rolling(
+    patient_ml_features['std_'+col+'_'+sliding_window+'_days'] = patient_base_features[col].rolling(
         str(sliding_window)+'d').std().shift(1)
 
 patient_ml_features = patient_ml_features.fillna(0)
 
 #TODO: Get a better representation than this.
 patient_q_asked = pd_sample_patient['xEmaSchedule'].resample('1d').count()
-
 patient_q_asked[:7] = 10
 patient_q_asked[len(patient_q_asked) - 7:] = 10
-
 patient_q_asked[7:len(patient_q_asked) - 7][patient_q_asked > 1] = 10
 patient_q_asked[patient_q_asked <= 1] = 1
 
