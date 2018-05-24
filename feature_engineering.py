@@ -52,7 +52,7 @@ for col in mood_question_columns:
 # Getting a number of generic statistics for the different features
 patient_ml_features = pd.DataFrame(index=patient_base_features.index)
 
-#TODO: Get a better representation than this
+# TODO: Get a better representation than this
 patient_q_asked = pd_sample_patient['xEmaSchedule'].resample('1d').count()
 patient_q_asked[:7] = 10
 patient_q_asked[len(patient_q_asked) - 7:] = 10
@@ -61,10 +61,11 @@ patient_q_asked[patient_q_asked <= 1] = 1
 
 pd_engagement = pd_sample_patient['xEmaSchedule'].resample(
     '1d') / patient_q_asked
-pd_engagement =  pd_engagement.fillna(0)
+pd_engagement = pd_engagement.fillna(0)
 
 #%%
-patient_base_features = patient_base_features.join(pd_engagement).rename(columns=({'xEmaSchedule': 'actual_engagement'}))
+patient_base_features = patient_base_features.join(pd_engagement).rename(
+    columns=({'xEmaSchedule': 'actual_engagement'}))
 patient_base_features
 #%%
 for col in patient_base_features.fillna(0):
@@ -88,7 +89,16 @@ patient_y = pd_engagement
 full_mod = pd.read_csv('data/v2/ema_logs/ECD_Y001.csv')
 full_mod['yDateTime'] = pd.to_datetime(full_mod['yDateTime'])
 patient_mod = full_mod[full_mod['ECD_ID'] == sample_patient]
-patient_mod =  patient_mod.set_index(['yDateTime'])
+patient_mod = patient_mod.set_index(['yDateTime'])
 
 #%%
+patient_mod_total_time = patient_mod['yDuration'].resample('1d').sum()
 
+patient_mod_total_pages = (1 + patient_mod['yPage'].resample(
+    '1d').max() - patient_mod['yPage'].resample('1d').min()).fillna(0)
+
+patient_mod_total_sessions = (1 + patient_mod['ySession'].resample(
+    '1d').max() - patient_mod['ySession'].resample('1d').min()).fillna(0)
+
+#%%
+# patient_mod_total_time
