@@ -8,7 +8,6 @@ import sklearn as sk
 import seaborn as sns
 import importlib
 from helpers import *
-%matplotlib inline
 
 #%%
 # Reading all of the EMA data, and fusing the date and time together.
@@ -101,4 +100,3 @@ patient_mod_total_sessions = (1 + patient_mod['ySession'].resample(
     '1d').max() - patient_mod['ySession'].resample('1d').min()).fillna(0)
 
 #%%
-# patient_mod_total_time
