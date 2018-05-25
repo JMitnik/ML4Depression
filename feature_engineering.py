@@ -15,10 +15,14 @@ full_EMA = pd.read_csv('data/v2/ema_logs/ECD_X970_12345678.csv',
                        parse_dates=[['xEmaDate', 'xEmaTime']])
 full_EMA['xEmaDate'] = full_EMA['xEmaDate_xEmaTime']
 full_EMA = full_EMA.drop(['xEmaDate_xEmaTime'], axis=1)
+meta_EMA = pd.read_csv('data/v2/ema_logs/ECD_X970_12345678_META.csv')
+
+#%%
+patients_sorted = meta_EMA.sort_values(by=['xEmaNRatings'], ascending=False)
 
 #%%
 # Per-patient basis: Looking at one patient for now
-sample_patient = full_EMA.loc[12000]['ECD_ID']
+sample_patient = patients_sorted['ECD_ID'][1]
 pd_sample_patient = get_patient_values(full_EMA, sample_patient)
 pd_sample_patient.index = pd_sample_patient['xEmaDate']
 
@@ -34,6 +38,8 @@ patient_moods_index = patient_moods_index.rename(
 pd_sample_patient = pd_sample_patient.drop(
     ['xEmaQuestion', 'xEmaRating', 'xEmaDate'], axis=1)
 
+
+#%%
 pd_sample_patient_self_initiated = pd_sample_patient[pd_sample_patient['xEmaSchedule'] == 4]
 pd_sample_patient = pd_sample_patient[pd_sample_patient['xEmaSchedule'] != 4]
 
@@ -65,7 +71,6 @@ pd_engagement = pd_engagement.fillna(0)
 #%%
 patient_base_features = patient_base_features.join(pd_engagement).rename(
     columns=({'xEmaSchedule': 'actual_engagement'}))
-patient_base_features
 #%%
 for col in patient_base_features.fillna(0):
     patient_ml_features['avg_'+col+'_'+str(sliding_window)+'_days'] = patient_base_features[col].rolling(
