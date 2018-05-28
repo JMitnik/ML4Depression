@@ -22,9 +22,13 @@ patients_sorted = meta_EMA.sort_values(by=['xEmaNRatings'], ascending=False)
 
 #%%
 # Per-patient basis: Looking at one patient for now
-sample_patient = patients_sorted['ECD_ID'][1]
+sample_patient = patients_sorted['ECD_ID'][4]
 pd_sample_patient = get_patient_values(full_EMA, sample_patient)
 pd_sample_patient.index = pd_sample_patient['xEmaDate']
+
+#%%
+pd_sample_patient
+#%%
 
 # Get representation of each of the moods of the patient
 pd_sample_patient_moods = pd.get_dummies(
@@ -38,7 +42,8 @@ patient_moods_index = patient_moods_index.rename(
 pd_sample_patient = pd_sample_patient.drop(
     ['xEmaQuestion', 'xEmaRating', 'xEmaDate'], axis=1)
 
-
+#%%
+pd_sample_patient
 #%%
 pd_sample_patient_self_initiated = pd_sample_patient[pd_sample_patient['xEmaSchedule'] == 4]
 pd_sample_patient = pd_sample_patient[pd_sample_patient['xEmaSchedule'] != 4]
