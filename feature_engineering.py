@@ -26,10 +26,6 @@ sample_patient = patients_sorted['ECD_ID'][4]
 pd_sample_patient = get_patient_values(full_EMA, sample_patient)
 pd_sample_patient.index = pd_sample_patient['xEmaDate']
 
-#%%
-pd_sample_patient
-#%%
-
 # Get representation of each of the moods of the patient
 pd_sample_patient_moods = pd.get_dummies(
     pd_sample_patient['xEmaQuestion'], prefix='ema_question')
@@ -42,9 +38,6 @@ patient_moods_index = patient_moods_index.rename(
 pd_sample_patient = pd_sample_patient.drop(
     ['xEmaQuestion', 'xEmaRating', 'xEmaDate'], axis=1)
 
-#%%
-pd_sample_patient
-#%%
 pd_sample_patient_self_initiated = pd_sample_patient[pd_sample_patient['xEmaSchedule'] == 4]
 pd_sample_patient = pd_sample_patient[pd_sample_patient['xEmaSchedule'] != 4]
 
@@ -76,7 +69,7 @@ pd_engagement = pd_engagement.fillna(0)
 #%%
 patient_base_features = patient_base_features.join(pd_engagement).rename(
     columns=({'xEmaSchedule': 'actual_engagement'}))
-#%%
+
 for col in patient_base_features.fillna(0):
     patient_ml_features['avg_'+col+'_'+str(sliding_window)+'_days'] = patient_base_features[col].rolling(
         str(sliding_window)+'d').mean().shift(1)
@@ -108,5 +101,3 @@ patient_mod_total_pages = (1 + patient_mod['yPage'].resample(
 
 patient_mod_total_sessions = (1 + patient_mod['ySession'].resample(
     '1d').max() - patient_mod['ySession'].resample('1d').min()).fillna(0)
-
-#%%
