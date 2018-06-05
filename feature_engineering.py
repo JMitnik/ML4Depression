@@ -51,7 +51,8 @@ def get_patient_features(full_EMA, patient_id):
     patient_df = patient_df.join(one_hot_encode_feature(
         patient_df, 'xEmaQuestion', prefix='count_ema_q'))
     patient_df, patient_self_init_df = split_self_init_sessions(patient_df)
-    patient_df = resample_patient_ema_questions(patient_df, SAMPLE_TIME)
+    patient_df = count_patient_ema_questions(patient_df, SAMPLE_TIME)
+    # TODO Here we need to merge another function call to add the patient_df_answers
     return patient_df
 
 def one_hot_encode_feature(patient, feature, prefix):
@@ -66,26 +67,19 @@ def resample_datetimeindex(dt_index, sample_time):
     return fill_data.index
 
 
-def resample_patient_ema_questions(patient_df, sample_time):
+def count_patient_ema_questions(patient_df, sample_time):
     ema_columns = patient_df.filter(regex="count_ema_q_\d")
-    patient_df = pd.DataFrame(
-        index=resample_datetimeindex(patient_df.index, sample_time))
+    patient_df = pd.DataFrame(index=resample_datetimeindex(patient_df.index, sample_time))
     patient_df = patient_df.join(ema_columns.resample(sample_time).sum())
     return patient_df
 
 
+#region [todo]
 def get_EMA_values(patient_df):
-
-    #%%
-    # TODO We need to improve this one.
-patient_moods_index = pd_sample_patient_moods.multiply(
-    pd_sample_patient['xEmaRating'], axis='index')
-patient_moods_index = patient_moods_index.rename(
-    columns={c: c+'_answer' for c in patient_moods_index.columns})
-pd_sample_patient = pd_sample_patient.drop(
-    ['xEmaQuestion', 'xEmaRating', 'xEmaDate'], axis=1)
-# endregion
-
+    patient_moods_index = patient_df.multiply(patient_df['xEmaRating'], axis='index')
+    patient_moods_index = patient_moods_index.rename(columns={c: c+'_answer' for c in patient_moods_index.columns})
+    pd_sample_patient = pd_sample_patient.drop(['xEmaQuestion', 'xEmaRating', 'xEmaDate'], axis=1)
+#endregion
 
 def convert_features_to_statistics(features, window):
     patient_ml = pd.DataFrame(index=features.index)
@@ -112,7 +106,6 @@ sample_patient_ML_features = convert_features_to_statistics(
     sample_patient_features, SLIDING_WINDOW)
 # endregion
 
-#region [todo]
 
 #region [todo]
 # TODO: Get a better representation than this
