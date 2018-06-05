@@ -111,3 +111,11 @@ full_patient = patient_ml_features.join([patient_mod_total_time, patient_mod_tot
 # Shave off first and last week
 patient_x = full_patient[7:-7].fillna(0)
 patient_y = patient_y[7:-7].fillna(0)
+
+#%%
+# Day of the week next up
+weekend_days = patient_x.index.to_series().apply(lambda x: (x.isoweekday() == 6 or x.isoweekday() == 7)).astype(int)
+patient_x['weekend_day'] = weekend_days
+
+#%%
+patient_x
