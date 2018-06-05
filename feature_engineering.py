@@ -48,15 +48,22 @@ def split_self_init_sessions(patient_df):
 
 def get_patient_features(full_EMA, patient_id):
     patient_df = init_patient(full_EMA, patient_id)
-    patient_df = patient_df.join(one_hot_encode_feature(
-        patient_df, 'xEmaQuestion', prefix='count_ema_q'))
+    patient_df = extract_ema_vals(patient_df)
     patient_df, patient_self_init_df = split_self_init_sessions(patient_df)
-    patient_df = count_patient_ema_questions(patient_df, SAMPLE_TIME)
-    # TODO Here we need to merge another function call to add the patient_df_answers
+    patient_df = resample_patient_dataframe(patient_df, SAMPLE_TIME)
     return patient_df
 
-def one_hot_encode_feature(patient, feature, prefix):
-    return pd.get_dummies(patient[feature], prefix=prefix)
+def extract_ema_vals(patient_df):
+    ema_q = one_hot_encode_feature(patient_df, 'xEmaQuestion', prefix='ema_q')
+    ema_a = ema_q.multiply(patient_df['xEmaRating'], axis='index')
+    ema_q = ema_q.add_prefix('count_')
+    ema_a = ema_a.add_prefix('average_')
+
+    patient_df = patient_df.join([ema_q, ema_a])
+    return patient_df
+
+def one_hot_encode_feature(patient_df, feature, prefix):
+    return pd.get_dummies(patient_df[feature], prefix=prefix)
 
 
 def resample_datetimeindex(dt_index, sample_time):
@@ -66,20 +73,23 @@ def resample_datetimeindex(dt_index, sample_time):
     fill_data = pd.Series(resampled_date, resampled_date.floor(sample_time))
     return fill_data.index
 
+def resample_patient_dataframe(patient_df, sample_time):
+    ema_q_resampled = count_patient_ema_questions(patient_df, sample_time)
+    ema_a_resampled = avg_patient_ema_values(patient_df, sample_time)
+    return ema_q_resampled.join(ema_a_resampled)
+
+def avg_patient_ema_values(patient_df, sample_time):
+    ema_columns = patient_df.filter(regex="average_ema_*.")
+    patient_df = pd.DataFrame(index=resample_datetimeindex(patient_df.index, sample_time))
+    patient_df = patient_df.join(ema_columns.resample(sample_time).mean())
+    return patient_df
 
 def count_patient_ema_questions(patient_df, sample_time):
-    ema_columns = patient_df.filter(regex="count_ema_q_\d")
+    ema_columns = patient_df.filter(regex="count_ema_*.")
+    # ! Left-off: For some reason, the first column is not displaying anything here
     patient_df = pd.DataFrame(index=resample_datetimeindex(patient_df.index, sample_time))
     patient_df = patient_df.join(ema_columns.resample(sample_time).sum())
     return patient_df
-
-
-#region [todo]
-def get_EMA_values(patient_df):
-    patient_moods_index = patient_df.multiply(patient_df['xEmaRating'], axis='index')
-    patient_moods_index = patient_moods_index.rename(columns={c: c+'_answer' for c in patient_moods_index.columns})
-    pd_sample_patient = pd_sample_patient.drop(['xEmaQuestion', 'xEmaRating', 'xEmaDate'], axis=1)
-#endregion
 
 def convert_features_to_statistics(features, window):
     patient_ml = pd.DataFrame(index=features.index)
@@ -96,18 +106,19 @@ def convert_features_to_statistics(features, window):
 
     return patient_ml
 
-
 # region [cell] Initiating the code
 #%%
 full_EMA = read_EMA_code()
 sample_patient_id = get_patient_by_rank(4)
 sample_patient_features = get_patient_features(full_EMA, sample_patient_id)
-sample_patient_ML_features = convert_features_to_statistics(
-    sample_patient_features, SLIDING_WINDOW)
+
+sample_patient_features
+# sample_patient_ML_features = convert_features_to_statistics(sample_patient_features, SLIDING_WINDOW)
 # endregion
 
 
-#region [todo]
+#region [todo] Defining engagement
+#%%
 # TODO: Get a better representation than this
 patient_q_asked = pd_sample_patient['xEmaSchedule'].resample('1d').count()
 patient_q_asked[:7] = 10
