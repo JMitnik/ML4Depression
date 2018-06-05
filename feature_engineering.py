@@ -9,52 +9,112 @@ import seaborn as sns
 import importlib
 from helpers import *
 
+# region [cell] Init variables
+#%%
+SLIDING_WINDOW = 7
+SAMPLE_TIME = '1d'
+# endregion
+
 #%%
 # Reading all of the EMA data, and fusing the date and time together.
-full_EMA = pd.read_csv('data/v2/ema_logs/ECD_X970_12345678.csv',
-                       parse_dates=[['xEmaDate', 'xEmaTime']])
-full_EMA['xEmaDate'] = full_EMA['xEmaDate_xEmaTime']
-full_EMA = full_EMA.drop(['xEmaDate_xEmaTime'], axis=1)
-meta_EMA = pd.read_csv('data/v2/ema_logs/ECD_X970_12345678_META.csv')
 
-#%%
-patients_sorted = meta_EMA.sort_values(by=['xEmaNRatings'], ascending=False)
 
-#%%
-# Per-patient basis: Looking at one patient for now
-sample_patient = patients_sorted['ECD_ID'][4]
-pd_sample_patient = get_patient_values(full_EMA, sample_patient)
-pd_sample_patient.index = pd_sample_patient['xEmaDate']
+def read_EMA_code():
+    full_EMA = pd.read_csv('data/v2/ema_logs/ECD_X970_12345678.csv',
+                           parse_dates=[['xEmaDate', 'xEmaTime']])
+    full_EMA['xEmaDate'] = full_EMA['xEmaDate_xEmaTime']
+    full_EMA = full_EMA.drop(['xEmaDate_xEmaTime'], axis=1)
+    return full_EMA
 
-# Get representation of each of the moods of the patient
-pd_sample_patient_moods = pd.get_dummies(
-    pd_sample_patient['xEmaQuestion'], prefix='ema_question')
-pd_sample_patient = pd_sample_patient.join(pd_sample_patient_moods)
 
+def get_patient_by_rank(ratings_rank):
+    meta_EMA = pd.read_csv('data/v2/ema_logs/ECD_X970_12345678_META.csv')
+    patients_sorted = meta_EMA.sort_values(
+        by=['xEmaNRatings'], ascending=False)
+    return patients_sorted['ECD_ID'][ratings_rank]
+
+
+def init_patient(full_EMA, patient_id):
+    patient_df = full_EMA[full_EMA['ECD_ID'] == patient_id]
+    patient_df.index = patient_df['xEmaDate']
+    return patient_df
+
+
+def split_self_init_sessions(patient_df):
+    patient_self_init_df = patient_df[patient_df['xEmaSchedule'] == 4]
+    patient_df = patient_df[patient_df['xEmaSchedule'] != 4]
+    return (patient_df, patient_self_init_df)
+
+
+def get_patient_features(full_EMA, patient_id):
+    patient_df = init_patient(full_EMA, patient_id)
+    patient_df = patient_df.join(one_hot_encode_feature(
+        patient_df, 'xEmaQuestion', prefix='count_ema_q'))
+    patient_df, patient_self_init_df = split_self_init_sessions(patient_df)
+    patient_df = resample_patient_ema_questions(patient_df, SAMPLE_TIME)
+    return patient_df
+
+def one_hot_encode_feature(patient, feature, prefix):
+    return pd.get_dummies(patient[feature], prefix=prefix)
+
+
+def resample_datetimeindex(dt_index, sample_time):
+    date_min = dt_index.min()
+    date_max = dt_index.max() + pd.DateOffset(days=1)
+    resampled_date = pd.date_range(date_min, date_max, freq=sample_time)[:-1]
+    fill_data = pd.Series(resampled_date, resampled_date.floor(sample_time))
+    return fill_data.index
+
+
+def resample_patient_ema_questions(patient_df, sample_time):
+    ema_columns = patient_df.filter(regex="count_ema_q_\d")
+    patient_df = pd.DataFrame(
+        index=resample_datetimeindex(patient_df.index, sample_time))
+    patient_df = patient_df.join(ema_columns.resample(sample_time).sum())
+    return patient_df
+
+
+def get_EMA_values(patient_df):
+
+    #%%
+    # TODO We need to improve this one.
 patient_moods_index = pd_sample_patient_moods.multiply(
     pd_sample_patient['xEmaRating'], axis='index')
 patient_moods_index = patient_moods_index.rename(
     columns={c: c+'_answer' for c in patient_moods_index.columns})
 pd_sample_patient = pd_sample_patient.drop(
     ['xEmaQuestion', 'xEmaRating', 'xEmaDate'], axis=1)
+# endregion
 
-pd_sample_patient_self_initiated = pd_sample_patient[pd_sample_patient['xEmaSchedule'] == 4]
-pd_sample_patient = pd_sample_patient[pd_sample_patient['xEmaSchedule'] != 4]
 
-sliding_window = 7
+def convert_features_to_statistics(features, window):
+    patient_ml = pd.DataFrame(index=features.index)
 
-mood_question_columns = pd_sample_patient.filter(regex="ema_question_\d")
-pd_resampled_days = pd_sample_patient.resample('1d')
+    for col in features.fillna(0):
+        patient_ml['avg_'+col+'_'+str(window)+'_days'] = features[col].rolling(
+            str(window)+'d').mean().shift(1)
+        patient_ml['min_'+col+'_'+str(window)+'_days'] = features[col].rolling(
+            str(window)+'d').min().shift(1)
+        patient_ml['max_'+col+'_'+str(window)+'_days'] = features[col].rolling(
+            str(window)+'d').max().shift(1)
+        patient_ml['std_'+col+'_'+str(window)+'_days'] = features[col].rolling(
+            str(window)+'d').std().shift(1)
 
-patient_base_features = pd.DataFrame(index=pd_resampled_days.index)
+    return patient_ml
 
-for col in mood_question_columns:
-    resampled_col = mood_question_columns[col].resample('1d').sum()
-    patient_base_features[resampled_col.name] = resampled_col
 
-# Getting a number of generic statistics for the different features
-patient_ml_features = pd.DataFrame(index=patient_base_features.index)
+# region [cell] Initiating the code
+#%%
+full_EMA = read_EMA_code()
+sample_patient_id = get_patient_by_rank(4)
+sample_patient_features = get_patient_features(full_EMA, sample_patient_id)
+sample_patient_ML_features = convert_features_to_statistics(
+    sample_patient_features, SLIDING_WINDOW)
+# endregion
 
+#region [todo]
+
+#region [todo]
 # TODO: Get a better representation than this
 patient_q_asked = pd_sample_patient['xEmaSchedule'].resample('1d').count()
 patient_q_asked[:7] = 10
@@ -66,56 +126,6 @@ pd_engagement = pd_sample_patient['xEmaSchedule'].resample(
     '1d') / patient_q_asked
 pd_engagement = pd_engagement.fillna(0)
 
-#%%
 patient_base_features = patient_base_features.join(pd_engagement).rename(
     columns=({'xEmaSchedule': 'actual_engagement'}))
-
-for col in patient_base_features.fillna(0):
-    patient_ml_features['avg_'+col+'_'+str(sliding_window)+'_days'] = patient_base_features[col].rolling(
-        str(sliding_window)+'d').mean().shift(1)
-    patient_ml_features['min_'+col+'_'+str(sliding_window)+'_days'] = patient_base_features[col].rolling(
-        str(sliding_window)+'d').min().shift(1)
-    patient_ml_features['max_'+col+'_'+str(sliding_window)+'_days'] = patient_base_features[col].rolling(
-        str(sliding_window)+'d').max().shift(1)
-    patient_ml_features['std_'+col+'_'+str(sliding_window)+'_days'] = patient_base_features[col].rolling(
-        str(sliding_window)+'d').std().shift(1)
-
-patient_ml_features = patient_ml_features.fillna(0)
-
-# This is eventually what we export
-patient_x = patient_ml_features
-patient_y = pd_engagement
-
-#%%
-# Reading Module data
-full_mod = pd.read_csv('data/v2/ema_logs/ECD_Y001.csv')
-full_mod['yDateTime'] = pd.to_datetime(full_mod['yDateTime'])
-patient_mod = full_mod[full_mod['ECD_ID'] == sample_patient]
-patient_mod = patient_mod.set_index(['yDateTime'])
-
-#%%
-patient_mod_total_time = patient_mod['yDuration'].resample('1d').sum()
-
-patient_mod_total_pages = (1 + patient_mod['yPage'].resample(
-    '1d').max() - patient_mod['yPage'].resample('1d').min()).fillna(0)
-
-patient_mod_total_sessions = (1 + patient_mod['ySession'].resample(
-    '1d').max() - patient_mod['ySession'].resample('1d').min()).fillna(0)
-
-#%%
-# Grab the biggest index of both 'mergable sets'
-#TODO: Join whichever is biggest
-# biggest_index = patient_mod.index if len(patient_mod.index) > len(patient_ml_features.index) else patient_ml_features.index
-full_patient = patient_ml_features.join([patient_mod_total_time, patient_mod_total_pages, patient_mod_total_sessions])
-
-# Shave off first and last week
-patient_x = full_patient[7:-7].fillna(0)
-patient_y = patient_y[7:-7].fillna(0)
-
-#%%
-# Day of the week next up
-weekend_days = patient_x.index.to_series().apply(lambda x: (x.isoweekday() == 6 or x.isoweekday() == 7)).astype(int)
-patient_x['weekend_day'] = weekend_days
-
-#%%
-patient_x
+# endregion
