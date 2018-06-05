@@ -109,4 +109,5 @@ patient_mod_total_sessions = (1 + patient_mod['ySession'].resample(
 full_patient = patient_ml_features.join([patient_mod_total_time, patient_mod_total_pages, patient_mod_total_sessions])
 
 # Shave off first and last week
-patient_x = full_patient[7:-7]
+patient_x = full_patient[7:-7].fillna(0)
+patient_y = patient_y[7:-7].fillna(0)
