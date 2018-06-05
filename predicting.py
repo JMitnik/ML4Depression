@@ -39,8 +39,6 @@ lasso_prediction = lasso_regression.predict(test_x)
 test_x
 
 #%%
-
-
 # Training and Testing Ridge
 ridge_regression = RidgeCV(alphas=cv_alphas)
 ridge_regression.fit(train_x, train_y)
@@ -70,8 +68,3 @@ plot.plot(pred_pandas_ridge, color='green', label='ridge')
 plot.plot(pred_pandas_lasso, color='blue', label='lasso')
 plot.plot(test_y, color='red', label='true')
 plot.legend()
-
-#%%
-# Let's get the parameters off of ridge and lasso.
-ridge_regression.alpha_
-lasso_regression.alpha_

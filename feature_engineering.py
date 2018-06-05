@@ -101,3 +101,12 @@ patient_mod_total_pages = (1 + patient_mod['yPage'].resample(
 
 patient_mod_total_sessions = (1 + patient_mod['ySession'].resample(
     '1d').max() - patient_mod['ySession'].resample('1d').min()).fillna(0)
+
+#%%
+# Grab the biggest index of both 'mergable sets'
+#TODO: Join whichever is biggest
+# biggest_index = patient_mod.index if len(patient_mod.index) > len(patient_ml_features.index) else patient_ml_features.index
+full_patient = patient_ml_features.join([patient_mod_total_time, patient_mod_total_pages, patient_mod_total_sessions])
+
+# Shave off first and last week
+patient_x = full_patient[7:-7]
