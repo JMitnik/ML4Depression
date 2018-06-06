@@ -17,8 +17,6 @@ SAMPLE_TIME = '1d'
 
 #%%
 # Reading all of the EMA data, and fusing the date and time together.
-
-
 def read_EMA_code():
     full_EMA = pd.read_csv('data/v2/ema_logs/ECD_X970_12345678.csv',
                            parse_dates=[['xEmaDate', 'xEmaTime']])
@@ -65,7 +63,6 @@ def extract_ema_vals(patient_df):
 def one_hot_encode_feature(patient_df, feature, prefix):
     return pd.get_dummies(patient_df[feature], prefix=prefix)
 
-
 def resample_datetimeindex(dt_index, sample_time):
     date_min = dt_index.min()
     date_max = dt_index.max() + pd.DateOffset(days=1)
@@ -80,20 +77,20 @@ def resample_patient_dataframe(patient_df, sample_time):
 
 def avg_patient_ema_values(patient_df, sample_time):
     ema_columns = patient_df.filter(regex="average_ema_*.")
+    ema_columns = ema_columns.replace('', np.nan, regex=True).fillna(0)
+    ema_columns = ema_columns.astype(float)
     patient_df = pd.DataFrame(index=resample_datetimeindex(patient_df.index, sample_time))
     patient_df = patient_df.join(ema_columns.resample(sample_time).mean())
     return patient_df
 
 def count_patient_ema_questions(patient_df, sample_time):
     ema_columns = patient_df.filter(regex="count_ema_*.")
-    # ! Left-off: For some reason, the first column is not displaying anything here
     patient_df = pd.DataFrame(index=resample_datetimeindex(patient_df.index, sample_time))
     patient_df = patient_df.join(ema_columns.resample(sample_time).sum())
     return patient_df
 
 def convert_features_to_statistics(features, window):
     patient_ml = pd.DataFrame(index=features.index)
-
     for col in features.fillna(0):
         patient_ml['avg_'+col+'_'+str(window)+'_days'] = features[col].rolling(
             str(window)+'d').mean().shift(1)
@@ -103,33 +100,35 @@ def convert_features_to_statistics(features, window):
             str(window)+'d').max().shift(1)
         patient_ml['std_'+col+'_'+str(window)+'_days'] = features[col].rolling(
             str(window)+'d').std().shift(1)
-
     return patient_ml
+
+def get_relevant_data(patient_df):
+    return patient_df[7:-7]
 
 # region [cell] Initiating the code
 #%%
 full_EMA = read_EMA_code()
 sample_patient_id = get_patient_by_rank(4)
-sample_patient_features = get_patient_features(full_EMA, sample_patient_id)
-
-sample_patient_features
-# sample_patient_ML_features = convert_features_to_statistics(sample_patient_features, SLIDING_WINDOW)
+sample_patient = init_patient(full_EMA, sample_patient_id)
+sample_patient_features = get_patient_features(full_EMA, sample_patient_id).fillna(0)
+sample_patient_ML_features = convert_features_to_statistics(sample_patient_features, SLIDING_WINDOW)
+sample_patient_ML_features = get_relevant_data(sample_patient_ML_features)
+sample_patient_ML_features
 # endregion
 
+# #region [todo] Defining engagement
+# #%%
+# # TODO: Get a better representation than this
+# patient_q_asked = pd_sample_patient['xEmaSchedule'].resample('1d').count()
+# patient_q_asked[:7] = 10
+# patient_q_asked[len(patient_q_asked) - 7:] = 10
+# patient_q_asked[7:len(patient_q_asked) - 7][patient_q_asked > 1] = 10
+# patient_q_asked[patient_q_asked <= 1] = 1
 
-#region [todo] Defining engagement
-#%%
-# TODO: Get a better representation than this
-patient_q_asked = pd_sample_patient['xEmaSchedule'].resample('1d').count()
-patient_q_asked[:7] = 10
-patient_q_asked[len(patient_q_asked) - 7:] = 10
-patient_q_asked[7:len(patient_q_asked) - 7][patient_q_asked > 1] = 10
-patient_q_asked[patient_q_asked <= 1] = 1
+# pd_engagement = pd_sample_patient['xEmaSchedule'].resample(
+#     '1d') / patient_q_asked
+# pd_engagement = pd_engagement.fillna(0)
 
-pd_engagement = pd_sample_patient['xEmaSchedule'].resample(
-    '1d') / patient_q_asked
-pd_engagement = pd_engagement.fillna(0)
-
-patient_base_features = patient_base_features.join(pd_engagement).rename(
-    columns=({'xEmaSchedule': 'actual_engagement'}))
-# endregion
+# patient_base_features = patient_base_features.join(pd_engagement).rename(
+#     columns=({'xEmaSchedule': 'actual_engagement'}))
+# # endregion
