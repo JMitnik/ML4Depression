@@ -9,8 +9,8 @@ import importlib
 
 from sklearn.linear_model import RidgeCV , LassoCV
 from sklearn.svm import SVR
-from sklearn.metrics import explained_variance_score, mean_absolute_error, mean_squared_error, mean_squared_log_error
-from feature_engineering import patient_x, patient_y
+from sklearn.metrics import explained_variance_score, mean_absolute_error, mean_squared_error, mean_squared_log_error, accuracy_score
+from ema_features import patient_x, patient_y
 
 #%%
 def split_dataset(x, y, split_index):
@@ -68,3 +68,7 @@ plot.plot(pred_pandas_ridge, color='green', label='ridge')
 plot.plot(pred_pandas_lasso, color='blue', label='lasso')
 plot.plot(test_y, color='red', label='true')
 plot.legend()
+
+#%%
+
+lasso_acc = accuracy_score(test_y, lasso_prediction)

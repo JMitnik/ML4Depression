@@ -13,7 +13,7 @@ from helpers import *
 #%%
 SLIDING_WINDOW = 7
 SAMPLE_TIME = '1d'
-SELF_INIT_MAX = 7
+SELF_INIT_MAX = 5
 MAX_ENGAGEMENT_SCORE = SELF_INIT_MAX + 2
 # endregion
 
@@ -69,6 +69,8 @@ def get_engagement(patient_df, patient_self_init_df):
     patient_self_init_count = patient_df.filter(regex=count_regex).sum(axis=1).apply(lambda row: min(row, SELF_INIT_MAX))
     bool_patient_asked = patient_asked_count.apply(lambda row: min(1, row))
     bool_patient_init = patient_self_init_count.apply(lambda row: min(1, row))
+
+    # TODO We should probably normalize in a better way somehow.
     return (patient_self_init_count + bool_patient_asked + bool_patient_init) / MAX_ENGAGEMENT_SCORE
 
 def one_hot_encode_feature(patient_df, feature, prefix):
@@ -126,7 +128,13 @@ sample_patient_features, sample_patient_self_init_features = get_patient_feature
 sample_patient_engagement = get_engagement(sample_patient_features, sample_patient_self_init_features).rename('prior_engagement')
 sample_patient_features = sample_patient_features.join(sample_patient_engagement)
 
+# todo This will probably go in the 'main feature' file
 sample_patient_ML_features = convert_features_to_statistics(sample_patient_features, SLIDING_WINDOW)
-sample_patient_ML_features = get_relevant_data(sample_patient_ML_features)
 sample_patient_ML_features
 # endregion
+
+
+#%%
+patient_x = get_relevant_data(sample_patient_ML_features)
+patient_y = get_relevant_data(sample_patient_engagement)
+len(patient_x)
