@@ -8,6 +8,7 @@ import sklearn as sk
 import seaborn as sns
 import importlib
 from helpers import *
+from sklearn import preprocessing
 
 # region [cell] Init variables
 #%%
@@ -26,6 +27,9 @@ def read_EMA_code():
     full_EMA = full_EMA.drop(['xEmaDate_xEmaTime'], axis=1)
     return full_EMA
 
+def normalize_column(column):
+    norm_column = (column - column.min()) / (column.max() - column.min())
+    return norm_column
 
 def get_patient_by_rank(ratings_rank):
     meta_EMA = pd.read_csv('data/v2/ema_logs/ECD_X970_12345678_META.csv')
@@ -38,7 +42,6 @@ def init_patient(full_EMA, patient_id):
     patient_df = full_EMA[full_EMA['ECD_ID'] == patient_id]
     patient_df.index = patient_df['xEmaDate']
     return patient_df
-
 
 def split_self_init_sessions(patient_df):
     patient_self_init_df = patient_df[patient_df['xEmaSchedule'] == 4]
@@ -71,7 +74,7 @@ def get_engagement(patient_df, patient_self_init_df):
     bool_patient_init = patient_self_init_count.apply(lambda row: min(1, row))
 
     # TODO We should probably normalize in a better way somehow.
-    return (patient_self_init_count + bool_patient_asked + bool_patient_init) / MAX_ENGAGEMENT_SCORE
+    return normalize_column(patient_self_init_count + bool_patient_asked + bool_patient_init)
 
 def one_hot_encode_feature(patient_df, feature, prefix):
     return pd.get_dummies(patient_df[feature], prefix=prefix)
@@ -115,9 +118,6 @@ def convert_features_to_statistics(features, window):
             str(window)+'d').std().shift(1)
     return patient_ml
 
-def get_relevant_data(patient_df):
-    return patient_df[7:-7]
-
 # region [cell] Initiating the code
 #%%
 full_EMA = read_EMA_code()
@@ -126,15 +126,9 @@ sample_patient = init_patient(full_EMA, sample_patient_id)
 
 sample_patient_features, sample_patient_self_init_features = get_patient_features(full_EMA, sample_patient_id)
 sample_patient_engagement = get_engagement(sample_patient_features, sample_patient_self_init_features).rename('prior_engagement')
-sample_patient_features = sample_patient_features.join(sample_patient_engagement)
+sample_patient_EMA_features = sample_patient_features.join(sample_patient_engagement)
 
 # todo This will probably go in the 'main feature' file
-sample_patient_ML_features = convert_features_to_statistics(sample_patient_features, SLIDING_WINDOW)
-sample_patient_ML_features
+# sample_patient_ML_features = convert_features_to_statistics(sample_patient_features, SLIDING_WINDOW)
+# sample_patient_engagement
 # endregion
-
-
-#%%
-patient_x = get_relevant_data(sample_patient_ML_features)
-patient_y = get_relevant_data(sample_patient_engagement)
-len(patient_x)
