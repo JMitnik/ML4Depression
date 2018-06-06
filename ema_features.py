@@ -13,6 +13,8 @@ from helpers import *
 #%%
 SLIDING_WINDOW = 7
 SAMPLE_TIME = '1d'
+SELF_INIT_MAX = 7
+MAX_ENGAGEMENT_SCORE = SELF_INIT_MAX + 2
 # endregion
 
 #%%
@@ -49,7 +51,8 @@ def get_patient_features(full_EMA, patient_id):
     patient_df = extract_ema_vals(patient_df)
     patient_df, patient_self_init_df = split_self_init_sessions(patient_df)
     patient_df = resample_patient_dataframe(patient_df, SAMPLE_TIME)
-    return patient_df
+    patient_self_init_df = resample_patient_dataframe(patient_self_init_df, SAMPLE_TIME)
+    return (patient_df.fillna(0), patient_self_init_df.fillna(0))
 
 def extract_ema_vals(patient_df):
     ema_q = one_hot_encode_feature(patient_df, 'xEmaQuestion', prefix='ema_q')
@@ -59,6 +62,14 @@ def extract_ema_vals(patient_df):
 
     patient_df = patient_df.join([ema_q, ema_a])
     return patient_df
+
+def get_engagement(patient_df, patient_self_init_df):
+    count_regex = 'count_ema_.*'
+    patient_asked_count = patient_df.filter(regex=count_regex).sum(axis=1)
+    patient_self_init_count = patient_df.filter(regex=count_regex).sum(axis=1).apply(lambda row: min(row, SELF_INIT_MAX))
+    bool_patient_asked = patient_asked_count.apply(lambda row: min(1, row))
+    bool_patient_init = patient_self_init_count.apply(lambda row: min(1, row))
+    return (patient_self_init_count + bool_patient_asked + bool_patient_init) / MAX_ENGAGEMENT_SCORE
 
 def one_hot_encode_feature(patient_df, feature, prefix):
     return pd.get_dummies(patient_df[feature], prefix=prefix)
@@ -110,25 +121,12 @@ def get_relevant_data(patient_df):
 full_EMA = read_EMA_code()
 sample_patient_id = get_patient_by_rank(4)
 sample_patient = init_patient(full_EMA, sample_patient_id)
-sample_patient_features = get_patient_features(full_EMA, sample_patient_id).fillna(0)
+
+sample_patient_features, sample_patient_self_init_features = get_patient_features(full_EMA, sample_patient_id)
+sample_patient_engagement = get_engagement(sample_patient_features, sample_patient_self_init_features).rename('prior_engagement')
+sample_patient_features = sample_patient_features.join(sample_patient_engagement)
+
 sample_patient_ML_features = convert_features_to_statistics(sample_patient_features, SLIDING_WINDOW)
 sample_patient_ML_features = get_relevant_data(sample_patient_ML_features)
 sample_patient_ML_features
 # endregion
-
-# #region [todo] Defining engagement
-# #%%
-# # TODO: Get a better representation than this
-# patient_q_asked = pd_sample_patient['xEmaSchedule'].resample('1d').count()
-# patient_q_asked[:7] = 10
-# patient_q_asked[len(patient_q_asked) - 7:] = 10
-# patient_q_asked[7:len(patient_q_asked) - 7][patient_q_asked > 1] = 10
-# patient_q_asked[patient_q_asked <= 1] = 1
-
-# pd_engagement = pd_sample_patient['xEmaSchedule'].resample(
-#     '1d') / patient_q_asked
-# pd_engagement = pd_engagement.fillna(0)
-
-# patient_base_features = patient_base_features.join(pd_engagement).rename(
-#     columns=({'xEmaSchedule': 'actual_engagement'}))
-# # endregion
