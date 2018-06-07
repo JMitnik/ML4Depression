@@ -5,7 +5,6 @@ import numpy as np
 import matplotlib as plot
 import sklearn as sk
 import importlib
-%matplotlib inline
 
 from sklearn import metrics, linear_model
 # Importing the different features
@@ -41,8 +40,8 @@ ml_algorithms = [
 #%% region [cell] The Main Code
 #region
 split_index = int(len(sample_patient_EMA_features) * 0.66)
-sample_patient_ML_features = convert_features_to_statistics(sample_patient_EMA_features, SLIDING_WINDOW)
 
+sample_patient_ML_features = convert_features_to_statistics(sample_patient_EMA_features, SLIDING_WINDOW)
 sample_patient_ML_features = get_relevant_dates(sample_patient_ML_features)
 sample_patient_engagement = get_relevant_dates(sample_patient_engagement)
 

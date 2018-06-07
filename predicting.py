@@ -8,8 +8,7 @@ import sklearn as sk
 import importlib
 
 from sklearn.linear_model import RidgeCV , LassoCV
-from sklearn.svm import SVR
-from sklearn.metrics import explained_variance_score, mean_absolute_error, mean_squared_error, mean_squared_log_error, accuracy_score
+from sklearn import metrics
 
 #%%
 def train_algorithms(list_algorithms, train_x, train_y, alphas):
@@ -17,7 +16,7 @@ def train_algorithms(list_algorithms, train_x, train_y, alphas):
 
     for algo in list_algorithms:
         algo['model'].fit(train_x, train_y)
-        result.append(list_algorithms)
+        result.append(algo)
 
     return result
 
@@ -32,7 +31,23 @@ def test_algorithms(list_algorithms, test_x):
 
 def eval_algorithms(list_algorithms, test_y):
     plot_algorithms(list_algorithms, test_y)
-    return ""
+    results = []
+
+    for algo in list_algorithms:
+        results.append(eval_algorithm(algo, test_y))
+
+    return results
+
+def eval_algorithm(algorithm, test_y):
+    results = []
+
+    results.append({"explained_var": metrics.explained_variance_score(algorithm['prediction'], test_y)})
+    results.append({"mae": metrics.mean_absolute_error(algorithm['prediction'], test_y)})
+    results.append({"mse": metrics.mean_squared_error(algorithm['prediction'], test_y)})
+    results.append({"r2": metrics.r2_score(algorithm['prediction'], test_y)})
+
+    algorithm['score'] = results
+    return algorithm
 
 def generate_color():
     return np.random.random(size=3) * 256
@@ -43,7 +58,7 @@ def plot_algorithms(list_algorithms, test_y):
     for algo in list_algorithms:
         print(algo)
         pred = pd.DataFrame(algo['prediction'], index=test_index)
-        plot.plot(pred, color='blue', label='test')
+        plot.plot(pred, color='blue', label=algo['name'])
 
     plot.plot(test_y, color='red', label='true')
     plot.legend()
