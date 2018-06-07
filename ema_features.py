@@ -20,6 +20,14 @@ MAX_ENGAGEMENT_SCORE = SELF_INIT_MAX + 2
 
 #%%
 # Reading all of the EMA data, and fusing the date and time together.
+def get_EMA_features_and_target_for_patient(patient_id):
+    patient_features, patient_self_init_features = get_patient_features(patient_id)
+    # todo Include patient_init_features
+    patient_engagement = get_engagement(patient_features, patient_self_init_features).rename('prior_engagement')
+    patient_EMA_features = patient_features.join(patient_engagement)
+
+    return (patient_EMA_features, patient_engagement)
+
 def read_EMA_code():
     full_EMA = pd.read_csv('data/v2/ema_logs/ECD_X970_12345678.csv',
                            parse_dates=[['xEmaDate', 'xEmaTime']])
@@ -47,8 +55,8 @@ def split_self_init_sessions(patient_df):
     patient_df = patient_df[patient_df['xEmaSchedule'] != 4]
     return (patient_df, patient_self_init_df)
 
-
-def get_patient_features(full_EMA, patient_id):
+def get_patient_features(patient_id):
+    full_EMA = read_EMA_code()
     patient_df = init_patient(full_EMA, patient_id)
     patient_df = extract_ema_vals(patient_df)
     patient_df, patient_self_init_df = split_self_init_sessions(patient_df)
@@ -116,18 +124,3 @@ def convert_features_to_statistics(features, window):
         patient_ml['std_'+col+'_'+str(window)+'_days'] = features[col].rolling(
             str(window)+'d').std().shift(1)
     return patient_ml
-
-# region [cell] Initiating the code
-#%%
-full_EMA = read_EMA_code()
-sample_patient_id = get_patient_id_by_rank(4)
-sample_patient = init_patient(full_EMA, sample_patient_id)
-
-sample_patient_features, sample_patient_self_init_features = get_patient_features(full_EMA, sample_patient_id)
-sample_patient_engagement = get_engagement(sample_patient_features, sample_patient_self_init_features).rename('prior_engagement')
-sample_patient_EMA_features = sample_patient_features.join(sample_patient_engagement)
-
-# todo This will probably go in the 'main feature' file
-# sample_patient_ML_features = convert_features_to_statistics(sample_patient_features, SLIDING_WINDOW)
-# sample_patient_engagement
-# endregion
