@@ -31,12 +31,11 @@ def normalize_column(column):
     norm_column = (column - column.min()) / (column.max() - column.min())
     return norm_column
 
-def get_patient_by_rank(ratings_rank):
+def get_patient_id_by_rank(ratings_rank):
     meta_EMA = pd.read_csv('data/v2/ema_logs/ECD_X970_12345678_META.csv')
     patients_sorted = meta_EMA.sort_values(
         by=['xEmaNRatings'], ascending=False)
     return patients_sorted['ECD_ID'][ratings_rank]
-
 
 def init_patient(full_EMA, patient_id):
     patient_df = full_EMA[full_EMA['ECD_ID'] == patient_id]
@@ -121,7 +120,7 @@ def convert_features_to_statistics(features, window):
 # region [cell] Initiating the code
 #%%
 full_EMA = read_EMA_code()
-sample_patient_id = get_patient_by_rank(4)
+sample_patient_id = get_patient_id_by_rank(4)
 sample_patient = init_patient(full_EMA, sample_patient_id)
 
 sample_patient_features, sample_patient_self_init_features = get_patient_features(full_EMA, sample_patient_id)
