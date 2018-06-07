@@ -2,69 +2,63 @@
 # Importing libraries
 import pandas as pd
 import numpy as np
+import random
 import matplotlib.pyplot as plot
 import sklearn as sk
 import importlib
-%matplotlib inline
 
 from sklearn.linear_model import RidgeCV , LassoCV
-from sklearn.svm import SVR
-from sklearn.metrics import explained_variance_score, mean_absolute_error, mean_squared_error, mean_squared_log_error
-from feature_engineering import patient_x, patient_y
+from sklearn import metrics
 
 #%%
-def split_dataset(x, y, split_index):
-    return (x[:split_index], y[:split_index], x[split_index:], y[split_index:])
+def train_algorithms(list_algorithms, train_x, train_y, alphas):
+    result = []
 
-rand_split = int(len(patient_x) * 0.66)
-train_x, train_y, test_x, test_y = split_dataset(patient_x, patient_y, rand_split)
+    for algo in list_algorithms:
+        algo['model'].fit(train_x, train_y)
+        result.append(algo)
 
-#%%
-patient_x
-# plot.plot(patient_y)
-plot.plot(train_y)
-plot.plot(test_y)
+    return result
 
-#%%
-# Testing the algorithms
-cv_alphas = (0.1, 0.2, 0.4, 0.6, 0.8)
+def test_algorithms(list_algorithms, test_x):
+    result = []
 
-# Training and Testing Lasso
-lasso_regression = LassoCV(alphas=cv_alphas)
-lasso_regression.fit(train_x, train_y)
+    for algorithm_object in list_algorithms:
+        algorithm_object['prediction'] = algorithm_object['model'].predict(test_x)
+        result.append(algorithm_object)
 
-lasso_prediction = lasso_regression.predict(test_x)
+    return result
 
-#%%
-test_x
+def eval_algorithms(list_algorithms, test_y):
+    plot_algorithms(list_algorithms, test_y)
+    results = []
 
-#%%
-# Training and Testing Ridge
-ridge_regression = RidgeCV(alphas=cv_alphas)
-ridge_regression.fit(train_x, train_y)
-ridge_prediction = ridge_regression.predict(test_x)
+    for algo in list_algorithms:
+        results.append(eval_algorithm(algo, test_y))
 
-#%%
-# Evaluating the algorithms
-lasso_score = mean_absolute_error(test_y, lasso_prediction)
-ridge_score = mean_absolute_error(test_y, ridge_prediction)
+    return results
 
-("Ridge MAE:"+str(ridge_score), "Lasso MAE:" +str(lasso_score))
+def eval_algorithm(algorithm, test_y):
+    results = []
 
-# Training and Testing the different forms of SVR
+    results.append({"explained_var": metrics.explained_variance_score(algorithm['prediction'], test_y)})
+    results.append({"mae": metrics.mean_absolute_error(algorithm['prediction'], test_y)})
+    results.append({"mse": metrics.mean_squared_error(algorithm['prediction'], test_y)})
+    results.append({"r2": metrics.r2_score(algorithm['prediction'], test_y)})
 
+    algorithm['score'] = results
+    return algorithm
 
-#%%
-time_index = test_y.index
-pred_pandas_ridge = pd.DataFrame(ridge_prediction, index=time_index)
-pred_pandas_lasso = pd.DataFrame(lasso_prediction, index=time_index)
+def generate_color():
+    return np.random.random(size=3) * 256
 
+def plot_algorithms(list_algorithms, test_y):
+    test_index = test_y.index
 
-#%%
-# Training SVR
+    for algo in list_algorithms:
+        print(algo)
+        pred = pd.DataFrame(algo['prediction'], index=test_index)
+        plot.plot(pred, color='blue', label=algo['name'])
 
-# Plotting the predictions vs actual
-plot.plot(pred_pandas_ridge, color='green', label='ridge')
-plot.plot(pred_pandas_lasso, color='blue', label='lasso')
-plot.plot(test_y, color='red', label='true')
-plot.legend()
+    plot.plot(test_y, color='red', label='true')
+    plot.legend()
