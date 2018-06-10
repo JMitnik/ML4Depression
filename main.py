@@ -4,8 +4,7 @@ import pandas as pd
 import numpy as np
 import matplotlib as plot
 import sklearn as sk
-%matplotlib inline
-from sklearn import metrics, linear_model
+from sklearn import metrics, linear_model, ensemble
 from helpers import get_relevant_dates, convert_features_to_statistics, split_dataset, get_patient_id_by_rank
 
 # Importing the different features
@@ -28,7 +27,7 @@ CV_ALPHAS = (0.1, 0.3, 0.5, 0.7, 0.9)
 # region
 sample_patient_id = get_patient_id_by_rank(4)
 sample_patient_ema_features, sample_patient_engagement = get_EMA_features_and_target_for_patient(sample_patient_id)
-sample_patient_module_features = get_module_features_for_patient(sample_patient_id).transpose()
+sample_patient_module_features = get_module_features_for_patient(sample_patient_id).transpose().fillna(0)
 # endregion
 
 #%% region [cell] ML models defined
@@ -41,6 +40,10 @@ ml_algorithms = [
     {
         "name": "Ridge",
         "model": linear_model.RidgeCV(alphas=CV_ALPHAS)
+    },
+    {
+        "name": "Random Forest",
+        "model": ensemble.RandomForestRegressor(n_estimators=1000)
     }
 ]
 
@@ -48,7 +51,7 @@ ml_algorithms = [
 
 #%% region [cell] Combine EMA and Module features
 # region
-sample_patient_features = sample_patient_ema_features.join(sample_patient_module_features.fillna(0))
+sample_patient_features = sample_patient_ema_features.join(sample_patient_module_features.fillna(0)).fillna(0)
 
 sample_patient_ML_features = convert_features_to_statistics(
     sample_patient_features, SLIDING_WINDOW)
@@ -80,10 +83,10 @@ eval_models = eval_algorithms(tested_models, test_y)
 # region
 rank = [{'coef':x, 'rank':i} for i,x in enumerate(eval_models[1]['model'].coef_)]
 rank = sorted(rank, key=lambda x: x['coef'], reverse=True)
-patient_x.columns[rank[1]['rank']]
+patient_x.columns[rank[0]['rank']]
 # endregion
 
 #%% region [cell] Experimenting
 #region
-sample_patient_engagement
+eval_models
 #endregion
