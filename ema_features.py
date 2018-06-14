@@ -81,7 +81,7 @@ def get_engagement(patient_df, patient_self_init_df):
     bool_patient_init = patient_self_init_count.apply(lambda row: min(1, row))
 
     # TODO We should probably normalize in a better way somehow.
-    return normalize_column(patient_self_init_count + bool_patient_asked + bool_patient_init)
+    return (patient_self_init_count + bool_patient_asked + bool_patient_init)
 
 def one_hot_encode_feature(patient_df, feature, prefix):
     return pd.get_dummies(patient_df[feature], prefix=prefix)

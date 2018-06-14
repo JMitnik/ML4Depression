@@ -50,7 +50,20 @@ def eval_algorithm(algorithm, test_y):
     return algorithm
 
 def generate_color():
-    return np.random.random(size=3) * 256
+    a = hex(random.randrange(0, 256))
+    b = hex(random.randrange(0,256))
+    c = hex(random.randrange(0,256))
+    a = a[2:]
+    b = b[2:]
+    c = c[2:]
+    if len(a)<2:
+        a = "0" + a
+    if len(b)<2:
+        b = "0" + b
+    if len(c)<2:
+        c = "0" + c
+    z = a + b + c
+    return "#" + z.upper()
 
 def plot_algorithms(list_algorithms, test_y):
     test_index = test_y.index
@@ -58,7 +71,7 @@ def plot_algorithms(list_algorithms, test_y):
     for algo in list_algorithms:
         print(algo)
         pred = pd.DataFrame(algo['prediction'], index=test_index)
-        plot.plot(pred, color='blue', label=algo['name'])
+        plot.plot(pred, color=generate_color(), label=algo['name'])
 
     plot.plot(test_y, color='red', label='true')
     plot.legend()
