@@ -27,7 +27,7 @@ BE_EMA_COLS = [
 ]
 
 def precalculated_feature_selection(ml_models):
-    return ml_models
+    return ml_models[BE_EMA_COLS]
 
 def backward_selection(max_features, ml_models, patient_x, patient_y):
     features = patient_x.columns.tolist()
