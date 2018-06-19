@@ -1,7 +1,33 @@
 import math
 import copy
-from predicting import train_algorithms, test_algorithms, eval_algorithms
+from predicting import make_algorithms
 from helpers import get_relevant_dates, convert_features_to_statistics, split_dataset, get_patient_id_by_rank
+
+BE_EMA_COLS = [
+    'avg_count_ema_q_2_7_days',
+    'min_count_ema_q_2_7_days',
+    'max_count_ema_q_2_7_days',
+    'min_count_ema_q_4_7_days',
+    'avg_count_ema_q_5_7_days',
+    'min_count_ema_q_5_7_days',
+    'max_count_ema_q_5_7_days',
+    'std_count_ema_q_5_7_days',
+    'avg_count_ema_q_6_7_days',
+    'min_count_ema_q_6_7_days',
+    'max_count_ema_q_6_7_days',
+    'std_count_ema_q_6_7_days',
+    'min_count_ema_q_7_7_days',
+    'min_average_ema_q_1_7_days',
+    'min_average_ema_q_3_7_days',
+    'std_average_ema_q_3_7_days',
+    'std_average_ema_q_4_7_days',
+    'min_average_ema_q_6_7_days',
+    'min_average_ema_q_7_7_days',
+    'weekendDay'
+]
+
+def precalculated_feature_selection(ml_models):
+    return ml_models
 
 def backward_selection(max_features, ml_models, patient_x, patient_y):
     features = patient_x.columns.tolist()
@@ -13,21 +39,11 @@ def backward_selection(max_features, ml_models, patient_x, patient_y):
 
         for feature in features:
             sample_models = copy.deepcopy(ml_models)
-            # First we remove the current feature
             temp_features = copy.deepcopy(features)
             temp_features.remove(feature)
-
-            # Then we train the model using this temp_feature
-
             fet_patient_x = patient_x[temp_features]
-            split_index = int(len(fet_patient_x) * 0.66)
-
-            train_x, train_y, test_x, test_y = split_dataset(
-                fet_patient_x, patient_y, split_index)
-            trained_models = train_algorithms(sample_models, train_x, train_y)
-            tested_models = test_algorithms(trained_models, test_x)
-            eval_models = eval_algorithms(tested_models, test_y)
-            performance = eval_models[0]['score']
+            models = make_algorithms(sample_models, fet_patient_x, patient_y)
+            performance = models[0]['score']
             performance = next(item for item in performance if item.get('mae'))['mae']
 
             if performance < best_performance:

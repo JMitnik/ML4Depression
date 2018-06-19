@@ -6,6 +6,7 @@ import random
 import matplotlib.pyplot as plot
 import sklearn as sk
 import importlib
+from helpers import get_relevant_dates, convert_features_to_statistics, split_dataset, get_patient_id_by_rank
 
 from sklearn.linear_model import RidgeCV , LassoCV
 from sklearn import metrics
@@ -19,6 +20,17 @@ def train_algorithms(list_algorithms, train_x, train_y):
         result.append(algo)
 
     return result
+
+def make_algorithms(list_algorithms, patient_x, patient_y, set_split=0.66):
+    split_index = int(len(patient_x) * set_split)
+
+    train_x, train_y, test_x, test_y = split_dataset(
+        patient_x, patient_y, split_index)
+    trained_models = train_algorithms(sample_models, train_x, train_y)
+    tested_models = test_algorithms(trained_models, test_x)
+    eval_models = eval_algorithms(tested_models, test_y)
+
+    return eval_models
 
 def test_algorithms(list_algorithms, test_x):
     result = []
