@@ -1,5 +1,6 @@
 import pandas as pd
 import random
+from statistics import mean
 
 def get_relevant_dates(patient_df):
     return patient_df[7:-7]
@@ -28,3 +29,22 @@ def get_patient_id_by_rank(ratings_rank):
     patients_sorted = meta_EMA.sort_values(
         by=['xEmaNRatings'], ascending=False)
     return patients_sorted['ECD_ID'][ratings_rank]
+
+def get_average_MAE(eval_models):
+    results = []
+
+    for model in eval_models:
+        results.append(model['score']['mae'])
+
+    return mean(results)
+
+def get_all_MAE(eval_models):
+    results = []
+
+    for model in eval_models:
+        results.append({
+            'model': model['name'],
+            'MAE': model['score']['mae']
+        })
+
+    return results

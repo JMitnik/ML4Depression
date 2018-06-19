@@ -53,35 +53,7 @@ def backward_selection(max_features, ml_models, patient_x, patient_y):
         features.remove(worst_feature)
     return features
 
-
-    # def backward_selection(self, max_features, X_train, y_train):
-
-    #     # First select all features.
-    #     selected_features = X_train.columns.tolist()
-    #     ra = RegressionAlgorithms()
-    #     re = RegressionEvaluation()
-
-    #     # Select from the features that are still in the selection.
-    #     for i in range(0, (len(X_train.columns) - max_features)):
-    #         best_perf = sys.float_info.max
-    #         worst_feature = ''
-    #         for f in selected_features:
-    #             temp_selected_features = copy.deepcopy(selected_features)
-    #             temp_selected_features.remove(f)
-
-    #             # Determine the score without the feature.
-    #             pred_y_train, pred_y_test = ra.decision_tree(X_train[temp_selected_features], y_train, X_train[temp_selected_features])
-    #             perf = re.mean_squared_error(y_train, pred_y_train)
-    #             # If we score better (i.e. a lower mse) without the feature than what we have seen so far
-    #             # this is the worst feature.
-    #             if perf < best_perf:
-    #                 best_perf = perf
-    #                 worst_feature = f
-    #         # Remove the worst feature.
-    #         selected_features.remove(worst_feature)
-    #     return selected_features
-
-
+# TODO: Create forwards feature selection.
 # # Specifies feature selection approaches for classification to identify the most important features.
 # class FeatureSelectionRegression:
 

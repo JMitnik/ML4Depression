@@ -85,7 +85,7 @@ sample_patient_ML_features['weekendDay'] = get_weekend_days(
 patient_x = get_relevant_dates(sample_patient_ML_features)
 patient_y = get_relevant_dates(sample_patient_engagement)
 
-# This is where we do the feature selection before we pass it to the ML-prediction of the next cell.
+This is where we do the feature selection before we pass it to the ML-prediction of the next cell.
 # #endregion
 
 #%% region [cell] ML Predicting Modeling
