@@ -11,7 +11,7 @@ from sklearn.linear_model import RidgeCV , LassoCV
 from sklearn import metrics
 
 #%%
-def train_algorithms(list_algorithms, train_x, train_y, alphas):
+def train_algorithms(list_algorithms, train_x, train_y):
     result = []
 
     for algo in list_algorithms:
