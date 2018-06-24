@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 import matplotlib as plot
 import sklearn as sk
-import importlib
 
 def get_module_features_for_patient(patient_id):
     full_mod = read_module_data()
