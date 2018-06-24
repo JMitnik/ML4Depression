@@ -1,9 +1,12 @@
 import pandas as pd
 import random
 from statistics import mean
+from ema_features import get_patient_features
+
 
 def get_relevant_dates(patient_df):
     return patient_df[7:-7]
+
 
 def convert_features_to_statistics(features, window):
     patient_ml = pd.DataFrame(index=features.index)
@@ -18,17 +21,34 @@ def convert_features_to_statistics(features, window):
             str(window)+'d').std().shift(1)
     return patient_ml
 
+
 def split_dataset(x, y, split_index):
     return (x[:split_index], y[:split_index], x[split_index:], y[split_index:])
 
+
 def generate_rand_color():
     return "%06x" % random.randint(0, 0xFFFFFF)
+
+
+def get_proper_patients(max_patients=20):
+    """Returns all patients who answered queried questions at least once, and initiated at least once."""
+    meta_EMA = pd.read_csv('data/v2/ema_logs/ECD_X970_12345678_META.csv')
+    patients_sorted = meta_EMA.sort_values(by=['xEmaNRatings'], ascending=False)
+    patients = []
+
+    for _, patient in patients_sorted.iterrows():
+        if get_patient_features(patient['ECD_ID']):
+            patients.append(patient['ECD_ID'])
+
+    return patients
+
 
 def get_patient_id_by_rank(ratings_rank):
     meta_EMA = pd.read_csv('data/v2/ema_logs/ECD_X970_12345678_META.csv')
     patients_sorted = meta_EMA.sort_values(
         by=['xEmaNRatings'], ascending=False)
     return patients_sorted['ECD_ID'][ratings_rank]
+
 
 def get_average_MAE(eval_models):
     results = []
@@ -37,6 +57,7 @@ def get_average_MAE(eval_models):
         results.append(model['score']['mae'])
 
     return mean(results)
+
 
 def get_all_MAE(eval_models):
     results = []

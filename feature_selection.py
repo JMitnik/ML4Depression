@@ -2,6 +2,7 @@ import math
 import copy
 from scipy.stats import pearsonr
 from predicting import make_algorithms
+import numpy as np
 from helpers import get_relevant_dates, convert_features_to_statistics, split_dataset, get_patient_id_by_rank
 from operator import itemgetter
 
@@ -93,12 +94,12 @@ def correlate_features(max_features, ml_models, patient_x, patient_y):
     abs_columns_and_corr = []
 
     for i in range(0, len(patient_x.columns)):
-        corr_score, p = pearsonr(patient_x.columns[i], patient_y)
-        correlations.append(abs(corr_score))
+        corr_scoress, p = pearsonr(patient_x[patient_x.columns[i]], patient_y)
+        correlations.append(abs(corr_scores))
 
-        if np.isfinite(corr_scores):
-            full_columns_and_corr.append((patient_x.columns[i], corr_score))
-            abs_columns_and_corr.append((patient_x.columns[i], abs(corr_score)))
+        if np.isfinite(corr_scoress):
+            full_columns_and_corr.append((patient_x.columns[i], corr_scores))
+            abs_columns_and_corr.append((patient_x.columns[i], abs(corr_scores)))
 
     sorted_attributes = sorted(abs_columns_and_corr, key=itemgetter(1), reverse=True)
     res_list = [x[0] for x in sorted_attributes[:max_features]]

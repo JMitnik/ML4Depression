@@ -39,12 +39,6 @@ def normalize_column(column):
     norm_column = (column - column.min()) / (column.max() - column.min())
     return norm_column
 
-def get_patient_id_by_rank(ratings_rank):
-    meta_EMA = pd.read_csv('data/v2/ema_logs/ECD_X970_12345678_META.csv')
-    patients_sorted = meta_EMA.sort_values(
-        by=['xEmaNRatings'], ascending=False)
-    return patients_sorted['ECD_ID'][ratings_rank]
-
 def init_patient(full_EMA, patient_id):
     patient_df = full_EMA[full_EMA['ECD_ID'] == patient_id]
     patient_df.index = patient_df['xEmaDate']
@@ -60,8 +54,17 @@ def get_patient_features(patient_id):
     patient_df = init_patient(full_EMA, patient_id)
     patient_df = extract_ema_vals(patient_df)
     patient_df, patient_self_init_df = split_self_init_sessions(patient_df)
+
+    if len(patient_df) == 0:
+        return None
+
     patient_df = resample_patient_dataframe(patient_df, SAMPLE_TIME)
+
     patient_self_init_df = resample_patient_dataframe(patient_self_init_df, SAMPLE_TIME)
+
+    if len(patient_self_init_df) == 0:
+        return None
+
     return (patient_df.fillna(0), patient_self_init_df.fillna(0))
 
 def extract_ema_vals(patient_df):
@@ -94,6 +97,8 @@ def resample_datetimeindex(dt_index, sample_time):
     return fill_data.index
 
 def resample_patient_dataframe(patient_df, sample_time):
+    if len(patient_df) == 0:
+        return pd.DataFrame()
     ema_q_resampled = count_patient_ema_questions(patient_df, sample_time)
     ema_a_resampled = avg_patient_ema_values(patient_df, sample_time)
     return ema_q_resampled.join(ema_a_resampled)
@@ -101,6 +106,7 @@ def resample_patient_dataframe(patient_df, sample_time):
 def avg_patient_ema_values(patient_df, sample_time):
     ema_columns = patient_df.filter(regex="average_ema_*.")
     ema_columns = ema_columns.replace('', np.nan, regex=True).fillna(0)
+    ema_columns = ema_columns.replace(' ', np.nan).fillna(0)
     ema_columns = ema_columns.astype(float)
     patient_df = pd.DataFrame(index=resample_datetimeindex(patient_df.index, sample_time))
     patient_df = patient_df.join(ema_columns.resample(sample_time).mean())
