@@ -80,7 +80,6 @@ def plot_algorithms(list_algorithms, test_y):
     test_index = test_y.index
 
     for algo in list_algorithms:
-        print(algo)
         pred = pd.DataFrame(algo['prediction'], index=test_index)
         plot.plot(pred, color=generate_color(), label=algo['name'])
 
