@@ -40,7 +40,7 @@ def normalize_column(column):
     return norm_column
 
 def init_patient(full_EMA, patient_id):
-    patient_df = full_EMA[full_EMA['ECD_ID'] == patient_id]
+    patient_df = full_EMA[full_EMA['ECD_ID'] == int(patient_id)]
     patient_df.index = patient_df['xEmaDate']
     return patient_df
 

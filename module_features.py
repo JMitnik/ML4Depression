@@ -17,7 +17,7 @@ def read_module_data():
     return full_mod
 
 def init_patient(full_mod, patient_id):
-    patient_df = full_mod[full_mod['ECD_ID'] == patient_id]
+    patient_df = full_mod[full_mod['ECD_ID'] == int(patient_id)]
     patient_df = patient_df.set_index(['yDateTime'])
     return patient_df
 

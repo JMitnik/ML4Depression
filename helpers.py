@@ -38,9 +38,14 @@ def get_proper_patients(max_patients=20):
 
     for _, patient in patients_sorted.iterrows():
         if get_patient_features(patient['ECD_ID']):
-            patients.append(patient['ECD_ID'])
 
-    return patients
+            patient_obj = {
+                'patient_id': str(patient['ECD_ID'])
+            }
+
+            patients.append(patient_obj)
+
+    return patients[:max_patients]
 
 
 def get_patient_id_by_rank(ratings_rank):
