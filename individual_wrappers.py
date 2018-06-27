@@ -6,7 +6,7 @@ from context_features import *
 from feature_selection import *
 from functools import reduce
 from copy import deepcopy
-
+from collections import Counter
 FEATURE_PATH = "data/features/"
 
 def get_features_for_patient(patient_id):
@@ -35,10 +35,13 @@ def learn_patients_setups(list_patients_objects, ml_algorithms, max_features=10)
             * All patietns already have a list of top-correlations.
     """
     feature_cols = get_FS_cols(deepcopy(list_patients_objects), max_features)
+    top_feature_cols = get_FS_cols(deepcopy(list_patients_objects), 20, 'top_features')
+
+    top_feature_results = get_patients_scores(deepcopy(list_patients_objects), deepcopy(ml_algorithms), top_feature_cols)
     all_features_results = get_patients_scores(deepcopy(list_patients_objects), deepcopy(ml_algorithms))
     FS_results = get_patients_scores(deepcopy(list_patients_objects), deepcopy(ml_algorithms), feature_cols)
 
-    return (FS_results, all_features_results)
+    return (top_feature_results, FS_results, all_features_results)
 
 def get_FS_cols(list_patients_objects, max_features=10, technique='correlation'):
     """ Retrieves the overall feature-selection columns for all patients.
@@ -52,7 +55,29 @@ def get_FS_cols(list_patients_objects, max_features=10, technique='correlation')
         features = get_patients_correlated_score(
             list_patients_objects).index.to_series().tolist()
 
+    if technique == 'top_features':
+        features = get_top_features(list_patients_objects)
+
     return features[:max_features]
+
+def get_top_features(list_patients_objects, max_features=20):
+    count = Counter()
+    for patient in list_patients_objects:
+        count += get_top_feature_ranking(patient['top_features'])
+
+    ranked_top_features = [item[0] for item in count.most_common()]
+
+    return ranked_top_features
+
+
+def get_top_feature_ranking(top_features):
+    result = []
+    count = Counter()
+
+    for index, feature in enumerate(top_features):
+        count = count + Counter({feature: len(top_features) - index})
+
+    return count
 
 def get_patients_scores_and_features(list_patients_objects, ml_algorithms, max_features=10):
     """ Initializes a run to embed into the patients-object both the top-features, MAE and
@@ -75,6 +100,8 @@ def get_patients_scores_and_features(list_patients_objects, ml_algorithms, max_f
         patient['pearson_correlated_features'] = correlate_features(max_features  , patient_x, patient_y)
         patient['top_features'] = top_features
 
+        save_patient_object(patient, '_top5_featureselection_')
+
         result.append(patient)
 
     return result
@@ -96,7 +123,6 @@ def get_patients_scores(list_patients_objects, ml_algorithms, feature_cols=None)
             patient_x = patient_x[feature_cols]
             patient['feature_selection'] = 'true'
 
-        print(patient_x.columns)
         models = make_algorithms(ml_algorithms, patient_x, patient_y)
         performance = next(item for item in models[2]['score'] if item.get('mae'))['mae']
         patient['MAE'] = performance
@@ -111,6 +137,8 @@ def get_patients_mean_MAE_score(list_patients_objects):
         Pre:
             * list_patients_objects must contain patients with embedded MAE eval scores.
     """
+    # print(list_patients_objects)
+    # return None
     return pd.DataFrame(list_patients_objects).mean()['MAE']
 
 def get_patients_correlated_score(list_patients_objects):
@@ -138,4 +166,13 @@ def save_patient_object(patient_object, prefix='', path_to_features=FEATURE_PATH
 
 def load_patient_object(patient_id, prefix='', path_to_features=FEATURE_PATH):
     """ Returns a patient object from a patient_id."""
-    return np.load(path_to_features+str(patient_id)+'_'+'top_features.npy')
+    return np.load(path_to_features + str(prefix) + str(patient_id)+'_'+'top_features.npy')
+
+def load_patients_object(list_patients, prefix='', path_to_features=FEATURE_PATH):
+    result = []
+
+    for patient in list_patients:
+        patient_object = load_patient_object(patient['patient_id'], prefix, path_to_features).tolist()
+        result.append(patient_object)
+
+    return result
