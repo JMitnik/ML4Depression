@@ -82,6 +82,7 @@ def forward_selection(max_features, ml_models, patient_x, patient_y):
                 best_performance = performance
                 best_feature = feature
 
+        print("Feature nr: #", i)
         features.append(best_feature)
         prev_best_perf = best_performance
 
