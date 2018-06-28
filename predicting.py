@@ -52,12 +52,18 @@ def eval_algorithms(list_algorithms, test_y):
 def eval_algorithm(algorithm, test_y):
     results = []
 
-    results.append({"explained_var": metrics.explained_variance_score(algorithm['prediction'], test_y)})
-    results.append({"mae": metrics.mean_absolute_error(algorithm['prediction'], test_y)})
-    results.append({"mse": metrics.mean_squared_error(algorithm['prediction'], test_y)})
-    results.append({"r2": metrics.r2_score(algorithm['prediction'], test_y)})
+    # results.append({"explained_var": metrics.explained_variance_score(algorithm['prediction'], test_y)})
+    # results.append({"mae": metrics.mean_absolute_error(algorithm['prediction'], test_y)})
+    # results.append({"mse": metrics.mean_squared_error(algorithm['prediction'], test_y)})
+    # results.append({"r2": metrics.r2_score(algorithm['prediction'], test_y)})
 
-    algorithm['score'] = results
+    algorithm['score'] = {
+        "explained_var": metrics.explained_variance_score(algorithm['prediction'], test_y),
+        "mae": metrics.mean_absolute_error(algorithm['prediction'], test_y),
+        "mse": metrics.mean_squared_error(algorithm['prediction'], test_y),
+        "r2": metrics.r2_score(algorithm['prediction'], test_y)
+    }
+
     return algorithm
 
 def generate_color():
