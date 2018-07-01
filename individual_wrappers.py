@@ -78,6 +78,15 @@ def get_top_features(list_patients_objects, max_features=20):
 
     return ranked_top_features
 
+def feature_rankings(list_patients_objects, max_features=20):
+    count = Counter()
+    for patient in list_patients_objects:
+        count += get_top_feature_ranking(patient['top_features'])
+
+    ranked_top_features = [item[0] for item in count.most_common()]
+    ranked_top_features_freq = [item[1] for item in count.most_common()]
+
+    return (ranked_top_features, ranked_top_features_freq)
 
 def get_top_feature_ranking(top_features):
     result = []
