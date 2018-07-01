@@ -29,6 +29,11 @@ def split_dataset(x, y, split_index):
 def generate_rand_color():
     return "%06x" % random.randint(0, 0xFFFFFF)
 
+def get_all_patients():
+    meta_EMA = pd.read_csv('data/v2/ema_logs/ECD_X970_12345678_META.csv')
+    patients_sorted = meta_EMA.sort_values(by=['xEmaNRatings'], ascending=False)
+
+    return patients_sorted
 
 def get_proper_patients(max_patients=20):
     """Returns all patients who answered queried questions at least once, and initiated at least once."""

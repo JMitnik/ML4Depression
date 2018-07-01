@@ -34,14 +34,23 @@ def learn_patients_setups(list_patients_objects, ml_algorithms, max_features=10)
             * All patients have already a list of top-features.
             * All patietns already have a list of top-correlations.
     """
+
+    # * What I need to do is output for both setups (per-patient and population):
+    #       * The MAE with all 73 features,
+    #           * For all the ML models and dummy.
+    #       * The MAE with forward-selection
+    #           * For all the ML models and dummy.
+    #       * The MAE whilst using correlation.
+    #           * For all the ML models and dummy.
+
     feature_cols = get_FS_cols(deepcopy(list_patients_objects), max_features)
     top_feature_cols = get_FS_cols(deepcopy(list_patients_objects), 20, 'top_features')
 
-    top_feature_results = get_patients_scores(deepcopy(list_patients_objects), deepcopy(ml_algorithms), top_feature_cols)
-    all_features_results = get_patients_scores(deepcopy(list_patients_objects), deepcopy(ml_algorithms))
-    FS_results = get_patients_scores(deepcopy(list_patients_objects), deepcopy(ml_algorithms), feature_cols)
+    top_feature_setup = get_patients_scores(deepcopy(list_patients_objects), deepcopy(ml_algorithms), top_feature_cols)
+    all_features_setup = get_patients_scores(deepcopy(list_patients_objects), deepcopy(ml_algorithms))
+    FS_setup = get_patients_scores(deepcopy(list_patients_objects), deepcopy(ml_algorithms), feature_cols)
 
-    return (top_feature_results, FS_results, all_features_results)
+    return (top_feature_setup, FS_setup, all_features_setup)
 
 def get_FS_cols(list_patients_objects, max_features=10, technique='correlation'):
     """ Retrieves the overall feature-selection columns for all patients.
@@ -69,6 +78,15 @@ def get_top_features(list_patients_objects, max_features=20):
 
     return ranked_top_features
 
+def feature_rankings(list_patients_objects, max_features=20):
+    count = Counter()
+    for patient in list_patients_objects:
+        count += get_top_feature_ranking(patient['top_features'])
+
+    ranked_top_features = [item[0] for item in count.most_common()]
+    ranked_top_features_freq = [item[1] for item in count.most_common()]
+
+    return (ranked_top_features, ranked_top_features_freq)
 
 def get_top_feature_ranking(top_features):
     result = []
@@ -79,7 +97,7 @@ def get_top_feature_ranking(top_features):
 
     return count
 
-def get_patients_scores_and_features(list_patients_objects, ml_algorithms, max_features=10):
+def create_patient_features(list_patients_objects, ml_algorithms, max_features=10):
     """ Initializes a run to embed into the patients-object both the top-features, MAE and
         pearson-correlated-features.
 
@@ -91,17 +109,11 @@ def get_patients_scores_and_features(list_patients_objects, ml_algorithms, max_f
 
     for patient in copied_patients:
         patient_x, patient_y = get_features_for_patient(patient['patient_id'])
-        models = make_algorithms(ml_algorithms, patient_x, patient_y)
-        performance = next(item for item in models[2]['score'] if item.get('mae'))['mae']
-
-        # TODO: Make this a setting
         top_features = forward_selection(max_features, ml_algorithms, patient_x, patient_y)
-
         patient['pearson_correlated_features'] = correlate_features(max_features  , patient_x, patient_y)
         patient['top_features'] = top_features
 
         save_patient_object(patient, '_top5_featureselection_')
-
         result.append(patient)
 
     return result
@@ -123,13 +135,53 @@ def get_patients_scores(list_patients_objects, ml_algorithms, feature_cols=None)
             patient_x = patient_x[feature_cols]
             patient['feature_selection'] = 'true'
 
-        models = make_algorithms(ml_algorithms, patient_x, patient_y)
-        performance = next(item for item in models[2]['score'] if item.get('mae'))['mae']
-        patient['MAE'] = performance
+        ml_models = make_algorithms(ml_algorithms, patient_x, patient_y)
+        performances = extract_performances_from_models(ml_models)
+        patient['performances'] = performances
 
         result.append(patient)
 
     return result
+
+def extract_performances_from_models(ml_models, performance_metric='mae'):
+    """ Returns an object with all the performances of all ML-models.
+
+        Pre:
+            * ML_models have to be trained, tested and evaluated.
+    """
+    results = []
+
+    for model in ml_models:
+        results.append({
+            'model_name': model['name'],
+            'model_'+performance_metric: model['score'][performance_metric]
+        })
+
+    return results
+
+def calc_avg_performance_from_models(ml_models, setup_object, performance='mae'):
+    result = []
+
+    for model in ml_models[1:]:
+        result.append({
+            'model_name': model['name'],
+            'average_'+performance: calc_avg_performance_from_model(model, setup_object, performance)
+        })
+
+    return result
+
+
+def calc_avg_performance_from_model(ml_model, setup_object, performance='mae'):
+    df_setup = pd.DataFrame(setup_object)['performances']
+
+    avg_values = []
+
+    for patient in df_setup:
+        df_patient = pd.DataFrame(patient)
+        avg_values.extend(df_patient[df_patient['model_name'] == ml_model['name']]['model_'+performance].values)
+
+    return np.mean(avg_values)
+
 
 def get_patients_mean_MAE_score(list_patients_objects):
     """ Returns an average of all MAE scores for all patients.
@@ -137,8 +189,6 @@ def get_patients_mean_MAE_score(list_patients_objects):
         Pre:
             * list_patients_objects must contain patients with embedded MAE eval scores.
     """
-    # print(list_patients_objects)
-    # return None
     return pd.DataFrame(list_patients_objects).mean()['MAE']
 
 def get_patients_correlated_score(list_patients_objects):
