@@ -35,6 +35,22 @@ def get_all_patients():
 
     return patients_sorted
 
+def get_all_proper_patients():
+    meta_EMA = pd.read_csv('data/v2/ema_logs/ECD_X970_12345678_META.csv')
+    patients_sorted = meta_EMA.sort_values(by=['xEmaNRatings'], ascending=False)
+    patients = []
+
+    for _, patient in patients_sorted.iterrows():
+        if get_patient_features(patient['ECD_ID']):
+
+            patient_obj = {
+                'patient_id': str(patient['ECD_ID'])
+            }
+
+            patients.append(patient_obj)
+
+    return patients
+
 def get_proper_patients(max_patients=20):
     """Returns all patients who answered queried questions at least once, and initiated at least once."""
     meta_EMA = pd.read_csv('data/v2/ema_logs/ECD_X970_12345678_META.csv')
@@ -75,7 +91,7 @@ def get_all_MAE(eval_models):
     for model in eval_models:
         results.append({
             'model': model['name'],
-            'MAE': model['score']['mae']
+            'MAE': model['score']['mae'],
         })
 
     return results

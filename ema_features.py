@@ -39,7 +39,7 @@ def normalize_column(column):
     norm_column = (column - column.min()) / (column.max() - column.min())
     return norm_column
 
-def init_patient(full_EMA, patient_id):
+def init_EMA_patient(full_EMA, patient_id):
     patient_df = full_EMA[full_EMA['ECD_ID'] == int(patient_id)]
     patient_df.index = patient_df['xEmaDate']
     return patient_df
@@ -51,7 +51,7 @@ def split_self_init_sessions(patient_df):
 
 def get_patient_features(patient_id):
     full_EMA = read_EMA_code()
-    patient_df = init_patient(full_EMA, patient_id)
+    patient_df = init_EMA_patient(full_EMA, patient_id)
     patient_df = extract_ema_vals(patient_df)
     patient_df, patient_self_init_df = split_self_init_sessions(patient_df)
 
