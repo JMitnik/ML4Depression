@@ -1,6 +1,8 @@
 import math
 import copy
 from scipy.stats import pearsonr
+import matplotlib.pyplot as plt
+# import matplotlib.pylab as plt
 from predicting import make_algorithms
 import numpy as np
 from helpers import get_relevant_dates, convert_features_to_statistics, split_dataset, get_patient_id_by_rank
@@ -56,13 +58,15 @@ def backward_selection(max_features, ml_models, patient_x, patient_y):
         features.remove(worst_feature)
     return features
 
-# Seemingly works
 def forward_selection(max_features, ml_models, patient_x, patient_y):
     ordered_features = []
     ordered_scores = []
     features = []
 
     prev_best_perf = math.inf
+
+    all_performances_index = []
+    all_performances_perf = []
 
     for i in range(0, max_features):
         features_left = list(set(patient_x.columns) - set(features))
@@ -75,20 +79,22 @@ def forward_selection(max_features, ml_models, patient_x, patient_y):
             temp_features.append(feature)
             fet_patient_x = patient_x[temp_features]
             models = make_algorithms(sample_models, fet_patient_x, patient_y)
-            performance = models[0]['score']
-            performance = next(item for item in performance if item.get('mae'))['mae']
+            # performance = models[0]['score']
+            performance = models[0]['score']['mae']
 
             if performance < best_performance:
                 best_performance = performance
                 best_feature = feature
 
+
         print("Feature nr: #", i)
+        all_performances_index.append(i+1)
+        all_performances_perf.append(best_performance)
         features.append(best_feature)
         prev_best_perf = best_performance
 
-    return features
+    return features, (all_performances_index, all_performances_perf)
 
-# Seemingly working.
 def correlate_features(max_features, patient_x, patient_y):
     correlations = []
     full_columns_and_corr = []

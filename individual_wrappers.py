@@ -71,6 +71,7 @@ def get_FS_cols(list_patients_objects, max_features=10, technique='correlation')
 
 def get_top_features(list_patients_objects, max_features=20):
     count = Counter()
+
     for patient in list_patients_objects:
         count += get_top_feature_ranking(patient['top_features'])
 
@@ -97,7 +98,7 @@ def get_top_feature_ranking(top_features):
 
     return count
 
-def create_patient_features(list_patients_objects, ml_algorithms, max_features=10):
+def create_patient_features(list_patients_objects, ml_algorithms, max_features=10, technique='forward_selection', prefix='fs'):
     """ Initializes a run to embed into the patients-object both the top-features, MAE and
         pearson-correlated-features.
 
@@ -105,19 +106,22 @@ def create_patient_features(list_patients_objects, ml_algorithms, max_features=1
             * Each patient has embedded a patient-id.
     """
     result = []
+    performances = []
     copied_patients = deepcopy(list_patients_objects)
 
     for patient in copied_patients:
         patient_x, patient_y = get_features_for_patient(patient['patient_id'])
-        top_features = forward_selection(max_features, ml_algorithms, patient_x, patient_y)
+
+        if technique == 'forward_selection':
+            top_features, performance_xy = forward_selection(max_features, ml_algorithms, patient_x, patient_y)
+
         patient['pearson_correlated_features'] = correlate_features(max_features  , patient_x, patient_y)
         patient['top_features'] = top_features
-
-        save_patient_object(patient, '_top5_featureselection_')
+        patient['performances'] = performance_xy
+        save_patient_object(patient, prefix)
         result.append(patient)
 
     return result
-
 
 def get_patients_scores(list_patients_objects, ml_algorithms, feature_cols=None):
     """ Returns a list of patient objects.
@@ -136,8 +140,9 @@ def get_patients_scores(list_patients_objects, ml_algorithms, feature_cols=None)
             patient['feature_selection'] = 'true'
 
         ml_models = make_algorithms(ml_algorithms, patient_x, patient_y)
-        performances = extract_performances_from_models(ml_models)
-        patient['performances'] = performances
+        patient['MAE'] = extract_performances_from_models(ml_models, 'mae')
+        patient['r2'] = extract_performances_from_models(ml_models, 'r2')
+        patient['explained_var'] = extract_performances_from_models(ml_models, 'explained_var')
 
         result.append(patient)
 
@@ -172,7 +177,7 @@ def calc_avg_performance_from_models(ml_models, setup_object, performance='mae')
 
 
 def calc_avg_performance_from_model(ml_model, setup_object, performance='mae'):
-    df_setup = pd.DataFrame(setup_object)['performances']
+    df_setup = pd.DataFrame(setup_object)
 
     avg_values = []
 
